@@ -15,6 +15,55 @@ import MessageList from '../components/MessageList';
 import Logo from '../components/Logo';
 import LoadingScreen from '../components/LoadingScreen';
 
+const getFriendlyErrorMessage = (err: any, defaultMsg: string = '⚠️ Something went wrong. Please try again.'): string => {
+  if (!err) return defaultMsg;
+  const message = err.message || '';
+
+  // 1. Try to extract FastAPI / HTTP JSON error details
+  try {
+    const match = message.match(/({.*})/);
+    if (match) {
+      const parsed = JSON.parse(match[1]);
+      if (parsed.detail) {
+        const detail = parsed.detail;
+        if (
+          detail.includes("no attribute") || 
+          detail.includes("failed to process") || 
+          detail.includes("Traceback") || 
+          detail.includes("Internal Server Error") ||
+          detail.includes("object has no")
+        ) {
+          return "There was an internal error processing the document. Please ensure the file is a valid PDF and try again.";
+        }
+        return detail;
+      }
+    }
+  } catch (e) {
+    // ignore
+  }
+
+  // 2. Specific network or status code handling
+  if (message.includes('500')) {
+    return 'Internal server error occurred. Please contact the administrator or try again later.';
+  }
+  if (message.includes('400')) {
+    const cleaned = message.replace(/^Request failed: 400 - /, '');
+    if (cleaned.includes('{') || cleaned.includes('}')) {
+      return 'Invalid request. Please verify the request content.';
+    }
+    return cleaned || 'Invalid request. Please check the file type/size.';
+  }
+  if (
+    message.toLowerCase().includes('failed to fetch') || 
+    message.includes('NetworkError') || 
+    message.includes('ERR_CONNECTION_REFUSED')
+  ) {
+    return 'Network connection error. Please check if the backend server is running and try again.';
+  }
+
+  return message || defaultMsg;
+};
+
 /** Local-only conversation model */
 interface Conversation {
   id: string;
@@ -244,66 +293,6 @@ export default function Home() {
 
     setIsLoading(true);
 
-    // 1. Check if we need to upload an attached file first
-    if (file) {
-      try {
-        const indexingMsgId = (Date.now() + 5).toString();
-        const indexingMsg: Message = {
-          id: indexingMsgId,
-          sender: 'bot',
-          text: `⏳ *Indexing attachment "${file.name}"...* Please wait while I load and vector-embed the text.`,
-          timestamp: new Date().toISOString(),
-        };
-        setConversations((prev) =>
-          prev.map((c) =>
-            c.id === activeConversationId
-              ? { ...c, messages: [...c.messages, indexingMsg] }
-              : c
-          )
-        );
-
-        await uploadPdf(file);
-
-        // Update notice to success
-        setConversations((prev) =>
-          prev.map((c) =>
-            c.id === activeConversationId
-              ? {
-                  ...c,
-                  messages: c.messages.map((m) =>
-                    m.id === indexingMsgId
-                      ? { ...m, text: `✅ *"${file.name}" successfully indexed!* You can now ask questions referencing this file.` }
-                      : m
-                  ),
-                }
-              : c
-          )
-        );
-      } catch (uploadErr: any) {
-        console.error(uploadErr);
-        const errorMsg: Message = {
-          id: (Date.now() + 6).toString(),
-          sender: 'bot',
-          text: `❌ *Failed to index attachment "${file.name}":* ${uploadErr.message || "Unknown error"}`,
-          timestamp: new Date().toISOString(),
-        };
-        setConversations((prev) =>
-          prev.map((c) =>
-            c.id === activeConversationId
-              ? { ...c, messages: [...c.messages, errorMsg] }
-              : c
-          )
-        );
-        setIsLoading(false);
-        return;
-      }
-    }
-
-    if (!prompt.trim()) {
-      setIsLoading(false);
-      return;
-    }
-
     const fileUrl = file instanceof File ? URL.createObjectURL(file) : undefined;
     const userMsg: Message = {
       id: Date.now().toString(),
@@ -343,8 +332,33 @@ export default function Home() {
     );
 
     try {
+      // 1. Upload PDF in the background first if present
+      if (file) {
+        try {
+          await uploadPdf(file);
+        } catch (uploadErr: any) {
+          console.error(uploadErr);
+          const friendlyError = getFriendlyErrorMessage(uploadErr, "Failed to index attachment due to an unexpected error.");
+          setConversations((prev) =>
+            prev.map((c) => {
+              if (c.id !== activeConversationId) return c;
+              return {
+                ...c,
+                messages: c.messages.map((m) =>
+                  m.id === botMsgId
+                    ? { ...m, text: `❌ *Failed to index attachment "${file.name}":* ${friendlyError}` }
+                    : m
+                ),
+              };
+            })
+          );
+          setIsLoading(false);
+          return;
+        }
+      }
+
+      // 2. Stream the RAG response
       let accumulatedText = '';
-      
       await sendChatStream(
         activeConversationId,
         userMsg.text,
@@ -385,6 +399,16 @@ export default function Home() {
         (errorMsg) => {
           // Surface streaming errors in the bot message
           setIsLoading(false);
+          let friendlyError = errorMsg;
+          if (
+            errorMsg.includes("no attribute") || 
+            errorMsg.includes("Traceback") || 
+            errorMsg.includes("Internal Server Error") ||
+            errorMsg.includes("Failed to process") ||
+            errorMsg.includes("object has no")
+          ) {
+            friendlyError = "An internal error occurred while generating the answer.";
+          }
           setConversations((prev) =>
             prev.map((c) => {
               if (c.id !== activeConversationId) return c;
@@ -392,7 +416,7 @@ export default function Home() {
                 ...c,
                 messages: c.messages.map((m) =>
                   m.id === botMsgId
-                    ? { ...m, text: `⚠️ ${errorMsg}` }
+                    ? { ...m, text: `⚠️ ${friendlyError}` }
                     : m
                 ),
               };
@@ -424,35 +448,20 @@ export default function Home() {
     } catch (err: any) {
       console.error(err);
 
-      let errorText = '⚠️ Something went wrong. Please try again.';
-
-      if (err.message) {
-        try {
-          const match = err.message.match(/({.*})/);
-          if (match) {
-            const parsed = JSON.parse(match[1]);
-            if (parsed.detail) {
-              errorText = parsed.detail;
-            }
-          }
-        } catch (e) {
-          // ignore
-        }
-      }
-
-      const errorMsg: Message = {
-        id: (Date.now() + 2).toString(),
-        sender: 'bot',
-        text: errorText,
-        timestamp: new Date().toISOString(),
-      };
+      const errorText = getFriendlyErrorMessage(err);
 
       setConversations((prev) =>
-        prev.map((c) =>
-          c.id === activeConversationId
-            ? { ...c, messages: [...c.messages, errorMsg] }
-            : c
-        )
+        prev.map((c) => {
+          if (c.id !== activeConversationId) return c;
+          return {
+            ...c,
+            messages: c.messages.map((m) =>
+              m.id === botMsgId
+                ? { ...m, text: `⚠️ ${errorText}` }
+                : m
+            )
+          };
+        })
       );
     } finally {
       setIsLoading(false);
