@@ -103,7 +103,7 @@ async def chat(req: ChatRequest, _=Depends(verify_api_key)):
         }
     except Exception as e:
         logger.error(f"Error in chat endpoint: {str(e)}", exc_info=True)
-        raise HTTPException(status_code=500, detail=f"Failed to generate answer: {str(e)}")
+        raise HTTPException(status_code=500, detail="Failed to generate answer. An unexpected server error occurred.")
 
 @app.post("/api/chat")
 async def chat_stream(req: ChatRequest, stream: bool = False, _=Depends(verify_api_key)):
@@ -194,7 +194,7 @@ async def chat_stream(req: ChatRequest, stream: bool = False, _=Depends(verify_a
             
         except Exception as e:
             logger.error(f"Error during stream generation: {str(e)}", exc_info=True)
-            yield f"data: {json.dumps({'type': 'error', 'data': str(e)})}\n\n"
+            yield f"data: {json.dumps({'type': 'error', 'data': 'An internal error occurred while generating the answer.'})}\n\n"
             yield f"data: {json.dumps({'type': 'done'})}\n\n"
 
     return StreamingResponse(event_generator(), media_type="text/event-stream")
@@ -239,7 +239,7 @@ async def upload_pdf(file: UploadFile = File(...)):
         }
     except Exception as e:
         logger.error(f"Error in upload_pdf endpoint: {str(e)}", exc_info=True)
-        raise HTTPException(status_code=500, detail=f"Failed to process and index PDF: {str(e)}")
+        raise HTTPException(status_code=500, detail="Failed to process and index PDF. Please verify the PDF format and try again.")
 
 @app.get("/documents")
 async def list_documents():
@@ -259,7 +259,7 @@ async def list_documents():
         return pdf_files
     except Exception as e:
         logger.error(f"Error listing documents: {str(e)}", exc_info=True)
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="Failed to list documents. Internal server error.")
 
 @app.delete("/documents/{filename}")
 async def delete_document(filename: str):
@@ -289,7 +289,7 @@ async def delete_document(filename: str):
         raise he
     except Exception as e:
         logger.error(f"Error deleting document: {str(e)}", exc_info=True)
-        raise HTTPException(status_code=500, detail=f"Failed to delete document: {str(e)}")
+        raise HTTPException(status_code=500, detail="Failed to delete document. Internal server error.")
 
 @app.get("/")
 async def root():

@@ -124,15 +124,6 @@ def upsert_documents(documents: List[Document]) -> PineconeVectorStore:
     """
     Embed and upsert a list of document chunks into the Pinecone index.
     """
-    if not settings.PINECONE_API_KEY:
-        raise ValueError("PINECONE_API_KEY is not set in the environment or .env file.")
-        
-    os.environ["PINECONE_API_KEY"] = settings.PINECONE_API_KEY
-    embeddings = get_embeddings()
-    
-    vector_store = PineconeVectorStore.from_documents(
-        documents=documents,
-        index_name=settings.PINECONE_INDEX_NAME,
-        embedding=embeddings
-    )
+    vector_store = get_vector_store()
+    vector_store.add_documents(documents)
     return vector_store
