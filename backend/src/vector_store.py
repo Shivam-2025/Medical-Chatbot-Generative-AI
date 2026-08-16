@@ -81,12 +81,57 @@ except ImportError as e:
         "Please run 'pip install langchain-pinecone'."
     )
 
-def get_embeddings() -> HuggingFaceEmbeddings:
+from langchain_core.embeddings import Embeddings
+
+class HuggingFaceAPIEmbeddings(Embeddings):
     """
-    Download/load the Hugging Face sentence-transformers model for generating embeddings locally.
+    Generate embeddings using Hugging Face's Serverless Inference API.
+    Bypasses the need to load PyTorch or sentence-transformers locally,
+    fitting within constrained memory limits (like Render's free tier).
     """
-    embeddings = HuggingFaceEmbeddings(model_name=settings.EMBEDDINGS_MODEL)
-    return embeddings
+    def __init__(self, model_name: str, hf_api_token: str):
+        self.model_name = model_name
+        self.hf_api_token = hf_api_token
+        self.api_url = f"https://api-inference.huggingface.co/pipeline/feature-extraction/{model_name}"
+        self.headers = {"Authorization": f"Bearer {hf_api_token}"}
+
+    def embed_documents(self, texts: List[str]) -> List[List[float]]:
+        import requests
+        response = requests.post(
+            self.api_url,
+            headers=self.headers,
+            json={"inputs": texts, "options": {"wait_for_model": True}}
+        )
+        if response.status_code != 200:
+            raise ValueError(f"HF API returned status {response.status_code}: {response.text}")
+        return response.json()
+
+    def embed_query(self, text: str) -> List[float]:
+        import requests
+        response = requests.post(
+            self.api_url,
+            headers=self.headers,
+            json={"inputs": [text], "options": {"wait_for_model": True}}
+        )
+        if response.status_code != 200:
+            raise ValueError(f"HF API returned status {response.status_code}: {response.text}")
+        return response.json()[0]
+
+def get_embeddings() -> Embeddings:
+    """
+    Returns the Hugging Face embeddings service.
+    Uses Hugging Face Serverless API if an API key is present in configuration (saves memory),
+    otherwise falls back to loading sentence-transformers locally via PyTorch.
+    """
+    if settings.HUGGINGFACE_API_KEY:
+        return HuggingFaceAPIEmbeddings(
+            model_name=settings.EMBEDDINGS_MODEL,
+            hf_api_token=settings.HUGGINGFACE_API_KEY
+        )
+    else:
+        from langchain_community.embeddings import HuggingFaceEmbeddings
+        embeddings = HuggingFaceEmbeddings(model_name=settings.EMBEDDINGS_MODEL)
+        return embeddings
 
 def get_vector_store() -> PineconeVectorStore:
     """

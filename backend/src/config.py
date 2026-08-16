@@ -18,6 +18,9 @@ class Settings:
     API_KEY: str = os.getenv("API_KEY", "supersecretkey123")
     ALLOWED_ORIGINS: str = os.getenv("ALLOWED_ORIGINS", "*")
     
+    # HuggingFace API key / Token for serverless inference
+    HUGGINGFACE_API_KEY: str = os.getenv("HUGGINGFACE_API_KEY") or os.getenv("HUGGINGFACEHUB_API_TOKEN") or os.getenv("HF_TOKEN") or ""
+    
     # Path to data directory containing PDF books
     DATA_DIR: Path = ROOT_DIR / "Data"
     
