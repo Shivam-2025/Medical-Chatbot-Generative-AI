@@ -318,3 +318,58 @@ async def debug_cors():
         "allow_credentials": allow_credentials
     }
 
+@app.get("/debug/test-rag")
+async def debug_test_rag(query: str = "Explain the difference between Type 1 and Type 2 diabetes."):
+    import traceback
+    try:
+        # Check settings
+        settings_info = {
+            "has_groq_api_key": bool(settings.GROQ_API_KEY),
+            "has_pinecone_api_key": bool(settings.PINECONE_API_KEY),
+            "pinecone_index_name": settings.PINECONE_INDEX_NAME,
+            "has_hf_api_key": bool(settings.HUGGINGFACE_API_KEY),
+            "embeddings_model": settings.EMBEDDINGS_MODEL
+        }
+        
+        # Test embeddings
+        from src.vector_store import get_embeddings
+        embeddings = get_embeddings()
+        embeddings_class = embeddings.__class__.__name__
+        
+        # Test vector store
+        from src.vector_store import get_vector_store
+        vector_store = get_vector_store()
+        
+        # Test query embeddings
+        query_vector = embeddings.embed_query(query)
+        embeddings_status = f"Success (dim: {len(query_vector)})"
+        
+        # Test Pinecone query
+        retriever = vector_store.as_retriever(search_kwargs={"k": 1})
+        docs = retriever.invoke(query)
+        pinecone_status = f"Success (retrieved {len(docs)} docs)"
+        
+        # Test chain
+        from src.chain import get_rag_chain
+        chain = get_rag_chain()
+        res = chain.invoke({"input": query})
+        
+        return {
+            "status": "success",
+            "settings": settings_info,
+            "embeddings_class": embeddings_class,
+            "embeddings_status": embeddings_status,
+            "pinecone_status": pinecone_status,
+            "chain_result": {
+                "answer_length": len(res.get("answer", "")),
+                "sources_count": len(res.get("context", []))
+            }
+        }
+    except Exception as e:
+        return {
+            "status": "error",
+            "error_message": str(e),
+            "stack_trace": traceback.format_exc()
+        }
+
+
