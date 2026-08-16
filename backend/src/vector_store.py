@@ -92,7 +92,7 @@ class HuggingFaceAPIEmbeddings(Embeddings):
     def __init__(self, model_name: str, hf_api_token: str = ""):
         self.model_name = model_name
         self.hf_api_token = hf_api_token
-        self.api_url = f"https://api-inference.huggingface.co/pipeline/feature-extraction/{model_name}"
+        self.api_url = f"https://router.huggingface.co/hf-inference/models/{model_name}/pipeline/feature-extraction"
         self.headers = {}
         if hf_api_token:
             self.headers["Authorization"] = f"Bearer {hf_api_token}"
