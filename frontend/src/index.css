@@ -2,9 +2,262 @@
 @tailwind components;
 @tailwind utilities;
 
-html, body, #root { height: 100%; }
+@layer base {
+  body {
+    font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  }
+}
+
+html, body, #root { 
+  height: 100%; 
+  margin: 0;
+  padding: 0;
+}
+
+/* Base background colors for Neo-Brutalism */
+.bg-nb-base {
+  background-color: #f4f6fa;
+}
+.dark .bg-nb-base {
+  background-color: #0a0b0d;
+}
+
+/* Neo-Brutalist Card with Teal Offset Shadow */
+.nb-card-teal {
+  background-color: #ffffff;
+  border: 2.5px solid #111111;
+  box-shadow: 5px 5px 0px #0d9488;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.dark .nb-card-teal {
+  background-color: #121318;
+  border: 2.5px solid #ffffff;
+  box-shadow: 5px 5px 0px #14b8a6;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+/* Neo-Brutalist Card with Indigo Offset Shadow */
+.nb-card-indigo {
+  background-color: #ffffff;
+  border: 2.5px solid #111111;
+  box-shadow: 5px 5px 0px #4f46e5;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.dark .nb-card-indigo {
+  background-color: #121318;
+  border: 2.5px solid #ffffff;
+  box-shadow: 5px 5px 0px #6366f1;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+/* Neo-Brutalist Card with Stark Black/White Shadow */
+.nb-card-black {
+  background-color: #ffffff;
+  border: 2.5px solid #111111;
+  box-shadow: 5px 5px 0px #111111;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.dark .nb-card-black {
+  background-color: #121318;
+  border: 2.5px solid #ffffff;
+  box-shadow: 5px 5px 0px #ffffff;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+/* Smaller badges or chips */
+.nb-chip {
+  background-color: #ffffff;
+  border: 1.5px solid #111111;
+  box-shadow: 2px 2px 0px #111111;
+}
+
+.dark .nb-chip {
+  background-color: #121318;
+  border: 1.5px solid #ffffff;
+  box-shadow: 2px 2px 0px #ffffff;
+}
+
+/* Neo-Brutalist Interactive Button */
+.nb-btn {
+  border: 2.5px solid #111111;
+  background-color: #ffffff;
+  box-shadow: 4px 4px 0px #111111;
+  transition: transform 0.15s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+  cursor: pointer;
+}
+
+.dark .nb-btn {
+  border: 2.5px solid #ffffff;
+  background-color: #121318;
+  box-shadow: 4px 4px 0px #ffffff;
+  transition: transform 0.15s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+  cursor: pointer;
+}
+
+.nb-btn:hover {
+  transform: translate(2px, 2px);
+}
+.nb-btn:hover {
+  box-shadow: 2px 2px 0px #111111;
+}
+.dark .nb-btn:hover {
+  box-shadow: 2px 2px 0px #ffffff;
+}
+
+.nb-btn:active {
+  transform: translate(4px, 4px);
+  box-shadow: 0px 0px 0px #111111;
+}
+.dark .nb-btn:active {
+  box-shadow: 0px 0px 0px #ffffff;
+}
+
+/* Scrollbars */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+  border-left: 2px solid #111111;
+}
+
+.dark ::-webkit-scrollbar-track {
+  border-left: 2px solid #ffffff;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #111111;
+  border: 1px solid #ffffff;
+}
+
+.dark ::-webkit-scrollbar-thumb {
+  background: #ffffff;
+  border: 1px solid #111111;
+}
+
+/* Custom Keyframe Animations */
+@keyframes scanLaser {
+  0% {
+    top: 0%;
+    opacity: 0;
+  }
+  15%, 85% {
+    opacity: 1;
+  }
+  100% {
+    top: 100%;
+    opacity: 0;
+  }
+}
+
+.animate-scan {
+  animation: scanLaser 3s infinite ease-in-out;
+}
 
 .prose pre {
   white-space: pre-wrap;
   word-wrap: break-word;
 }
+
+/* Loading Screen Keyframe Animations & Utilities */
+@keyframes drawPulse {
+  0% {
+    stroke-dashoffset: 220;
+  }
+  100% {
+    stroke-dashoffset: -220;
+  }
+}
+
+@keyframes stripeMove {
+  0% {
+    background-position: 0 0;
+  }
+  100% {
+    background-position: 32px 0;
+  }
+}
+
+/* Smooth floating orb animations for ambient background */
+@keyframes floatSlow {
+  0%, 100% {
+    transform: translate(0, 0) scale(1);
+    opacity: 0.6;
+  }
+  25% {
+    transform: translate(20px, -15px) scale(1.05);
+    opacity: 0.8;
+  }
+  50% {
+    transform: translate(-10px, 15px) scale(0.95);
+    opacity: 0.7;
+  }
+  75% {
+    transform: translate(-20px, -10px) scale(1.02);
+    opacity: 0.6;
+  }
+}
+
+@keyframes floatDelay {
+  0%, 100% {
+    transform: translate(0, 0) scale(1);
+    opacity: 0.5;
+  }
+  25% {
+    transform: translate(-15px, 20px) scale(1.03);
+    opacity: 0.7;
+  }
+  50% {
+    transform: translate(15px, -20px) scale(0.97);
+    opacity: 0.6;
+  }
+  75% {
+    transform: translate(10px, 10px) scale(1.04);
+    opacity: 0.5;
+  }
+}
+
+.animate-float-slow {
+  animation: floatSlow 8s ease-in-out infinite;
+}
+
+.animate-float-delay {
+  animation: floatDelay 10s ease-in-out infinite;
+  animation-delay: 2s;
+}
+
+.animate-pulse-dash {
+  stroke-dasharray: 55 165;
+  animation: drawPulse 2.5s linear infinite;
+}
+
+.retro-stripes {
+  background-image: linear-gradient(
+    45deg,
+    rgba(255, 255, 255, 0.15) 25%,
+    transparent 25%,
+    transparent 50%,
+    rgba(255, 255, 255, 0.15) 50%,
+    rgba(255, 255, 255, 0.15) 75%,
+    transparent 75%,
+    transparent
+  );
+  background-size: 32px 32px;
+  animation: stripeMove 1.2s linear infinite;
+}
+
+.bg-dots {
+  background-image: radial-gradient(#cbd5e1 1px, transparent 1px), radial-gradient(#cbd5e1 1px, transparent 1px);
+  background-size: 28px 28px;
+  background-position: 0 0, 14px 14px;
+}
+.dark .bg-dots {
+  background-image: radial-gradient(#334155 1px, transparent 1px), radial-gradient(#334155 1px, transparent 1px);
+}
+
+
