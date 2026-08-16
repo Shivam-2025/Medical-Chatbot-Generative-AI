@@ -302,3 +302,12 @@ async def root():
         "service": "Medical Chatbot Generative AI Backend",
         "index_name": settings.PINECONE_INDEX_NAME
     }
+
+@app.get("/debug/cors")
+async def debug_cors():
+    return {
+        "raw_allowed_origins": settings.ALLOWED_ORIGINS,
+        "parsed_allowed_origins": allowed_origins,
+        "allow_credentials": allow_credentials
+    }
+
