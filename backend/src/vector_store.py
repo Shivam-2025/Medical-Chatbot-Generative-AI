@@ -89,11 +89,13 @@ class HuggingFaceAPIEmbeddings(Embeddings):
     Bypasses the need to load PyTorch or sentence-transformers locally,
     fitting within constrained memory limits (like Render's free tier).
     """
-    def __init__(self, model_name: str, hf_api_token: str):
+    def __init__(self, model_name: str, hf_api_token: str = ""):
         self.model_name = model_name
         self.hf_api_token = hf_api_token
         self.api_url = f"https://api-inference.huggingface.co/pipeline/feature-extraction/{model_name}"
-        self.headers = {"Authorization": f"Bearer {hf_api_token}"}
+        self.headers = {}
+        if hf_api_token:
+            self.headers["Authorization"] = f"Bearer {hf_api_token}"
 
     def embed_documents(self, texts: List[str]) -> List[List[float]]:
         import requests
@@ -121,17 +123,28 @@ def get_embeddings() -> Embeddings:
     """
     Returns the Hugging Face embeddings service.
     Uses Hugging Face Serverless API if an API key is present in configuration (saves memory),
-    otherwise falls back to loading sentence-transformers locally via PyTorch.
+    or if sentence-transformers is not installed (e.g. on Render to prevent OOM).
+    Otherwise falls back to loading sentence-transformers locally via PyTorch.
     """
-    if settings.HUGGINGFACE_API_KEY:
+    # Check if we can load sentence-transformers locally
+    has_local_transformer = False
+    try:
+        import sentence_transformers
+        has_local_transformer = True
+    except ImportError:
+        pass
+
+    if settings.HUGGINGFACE_API_KEY or not has_local_transformer:
+        token = settings.HUGGINGFACE_API_KEY or ""
         return HuggingFaceAPIEmbeddings(
             model_name=settings.EMBEDDINGS_MODEL,
-            hf_api_token=settings.HUGGINGFACE_API_KEY
+            hf_api_token=token
         )
     else:
         from langchain_community.embeddings import HuggingFaceEmbeddings
         embeddings = HuggingFaceEmbeddings(model_name=settings.EMBEDDINGS_MODEL)
         return embeddings
+
 
 def get_vector_store() -> PineconeVectorStore:
     """
