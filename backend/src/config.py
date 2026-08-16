@@ -12,7 +12,7 @@ env_path = BACKEND_DIR / ".env"
 load_dotenv(dotenv_path=env_path)
 
 class Settings:
-    GROQ_API_KEY: str = os.getenv("Groq_API_KEY", "")
+    GROQ_API_KEY: str = os.getenv("GROQ_API_KEY") or os.getenv("Groq_API_KEY") or ""
     PINECONE_API_KEY: str = os.getenv("PINECONE_API_KEY", "")
     PINECONE_INDEX_NAME: str = os.getenv("PINECONE_INDEX_NAME", "medicalbot")
     API_KEY: str = os.getenv("API_KEY", "supersecretkey123")
