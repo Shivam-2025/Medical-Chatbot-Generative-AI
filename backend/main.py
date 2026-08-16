@@ -27,7 +27,12 @@ app = FastAPI(
 )
 
 # CORS setup to allow communication with the React frontend
-allowed_origins = [origin.strip().rstrip("/") for origin in settings.ALLOWED_ORIGINS.split(",") if origin.strip()]
+# Clean the ALLOWED_ORIGINS env var to remove any leading/trailing quotes and spaces
+raw_origins = settings.ALLOWED_ORIGINS.strip().strip("'").strip('"')
+allowed_origins = [origin.strip().strip("'").strip('"').rstrip("/") for origin in raw_origins.split(",") if origin.strip()]
+
+# Regex to support wildcard origins for local development (any port) and Vercel medibot deployments
+allow_origin_regex = r"https?://(localhost|127\.0\.0\.1)(:\d+)?|https://medibot-.*\.vercel\.app"
 
 allow_credentials = True
 if "*" in allowed_origins:
@@ -36,10 +41,12 @@ if "*" in allowed_origins:
 app.add_middleware(
     CORSMiddleware,
     allow_origins=allowed_origins,
+    allow_origin_regex=allow_origin_regex,
     allow_credentials=allow_credentials,
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
 
 # Request Models
 class ChatRequest(BaseModel):
